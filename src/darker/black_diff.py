@@ -66,6 +66,7 @@ class BlackModeAttributes(TypedDict, total=False):
     line_length: int
     string_normalization: bool
     is_pyi: bool
+    experimental_string_processing: bool
 
 
 @lru_cache(maxsize=1)
@@ -77,13 +78,18 @@ def read_black_config(src: Path, value: Optional[str]) -> BlackArgs:
         return BlackArgs()
 
     config = parse_pyproject_toml(value)
-
     return cast(
         BlackArgs,
         {
             key: value
             for key, value in config.items()
-            if key in ["line_length", "skip_string_normalization"]
+            if key
+            in [
+                "line_length",
+                "skip_string_normalization",
+                "experimental_string_processing",
+                "target_version",
+            ]
         },
     )
 
@@ -100,13 +106,28 @@ def run_black(
     :param black_args: Command-line arguments to send to ``black.FileMode``
 
     """
-    config = black_args.pop("config", None)
-    combined_args = read_black_config(src, config)
+    black_args.pop("config", None)
+    # combined_args = read_black_config(src, config)
+    # custom arguments for sklearn
+    combined_args = {
+        "line_length": 88,
+        "target_version": ["py37", "py38", "py39"],
+        "experimental_string_processing": True,
+    }
     combined_args.update(black_args)
 
     effective_args = BlackModeAttributes()
+
     if "line_length" in combined_args:
         effective_args["line_length"] = combined_args["line_length"]
+    if "target_version" in combined_args:
+        effective_args["target_versions"] = set(
+            [TargetVersion[val.upper()] for val in combined_args["target_version"]]
+        )
+    if "experimental_string_processing" in combined_args:
+        effective_args["experimental_string_processing"] = combined_args[
+            "experimental_string_processing"
+        ]
     if "skip_string_normalization" in combined_args:
         # The ``black`` command line argument is
         # ``--skip-string-normalization``, but the parameter for
