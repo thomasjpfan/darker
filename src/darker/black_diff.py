@@ -112,7 +112,6 @@ def run_black(
     combined_args = {
         "line_length": 88,
         "target_version": ["py37", "py38", "py39"],
-        "experimental_string_processing": True,
     }
     combined_args.update(black_args)
 
